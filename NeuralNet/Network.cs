@@ -78,13 +78,16 @@ namespace NeuralNet
 
         }
 
-        public void FeedForward(double[] a)
+        /// <summary>
+        /// Return the output of the network, given ``a`` as input.
+        /// </summary>
+        public double[] FeedForward(double[] a)
         {
             foreach(var zip in this.biases.Zip(this.weights, (Bias, Weight) => new { Bias, Weight }))
             {
-                
+                a = Matrix.Add(Matrix.DotProduct(zip.Weight, a), zip.Bias).Select(entry => Equations.Sigmoid(entry)).ToArray();
             }
-                
+            return a;
         }
     }
 }

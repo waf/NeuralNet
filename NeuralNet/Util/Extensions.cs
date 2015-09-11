@@ -23,6 +23,18 @@ namespace NeuralNet
             return rand_normal;
         }
 
+        public static void Shuffle<T>(this Random rng, IList<T> array)
+        {
+            int n = array.Count();
+            while (n > 1)
+            {
+                int k = rng.Next(n--);
+                T temp = array[n];
+                array[n] = array[k];
+                array[k] = temp;
+            }
+        }
+
         public static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, int n = 1)
         {
             var it = source.GetEnumerator();
@@ -38,6 +50,26 @@ namespace NeuralNet
                         yield return cache.Dequeue();
                 }
             } while (hasRemainingItems);
+        }
+
+        public static IList<T[]> Partition<T>(this IList<T> source, int n)
+        {
+            int length = source.Count();
+            IList<T[]> result = new List<T[]>((int)Math.Ceiling(length * 1.0 / n));
+
+            for (int i = 0; i < length; i += n)
+            {
+                int segmentSize = i + n < length ? n : length - i;
+                var segment = new T[segmentSize];
+
+                for (int s = 0; s < segmentSize; s++)
+                {
+                    segment[s] = source[i + s];
+                }
+                result.Add(segment);
+            }
+
+            return result;
         }
     }
 }

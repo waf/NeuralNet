@@ -11,9 +11,9 @@ namespace NeuralNet
     public class Network
     {
         double[][] biases;
+        double[][][] weights;
         readonly int numLayers;
         readonly int[] layerSizes;
-        readonly double[][][] weights;
         static readonly Random Random = new Random();
 
         /// <summary>
@@ -73,9 +73,69 @@ namespace NeuralNet
         /// the test data after each epoch, and partial progress printed out. This 
         /// is useful for tracking progress, but slows things down substantially.
         /// </summary>
-        public void StochasticGradientDescent(IList<Tuple<double[], double[]>> trainingData, int epochs, int miniBatchSize, double eta, IList<Tuple<double[], double[]>> testData)
+        public void StochasticGradientDescent(IList<Tuple<double[], double[]>> trainingData, int epochs, int miniBatchSize, double eta, IList<Tuple<double[], double[]>> testData = null)
         {
+            for (int j = 0; j < epochs; j++)
+            {
+                Random.Shuffle(trainingData);
+                var miniBatches = trainingData.Partition(miniBatchSize);
+                foreach (var miniBatch in miniBatches)
+                {
+                    this.UpdateMiniBatch(miniBatch, eta);
+                }
+                if(testData != null)
+                {
+                    Console.WriteLine("Epoch {0}: {1} / {2}", j, this.Evaluate(testData), testData.Count());
+                }
+            }
+        }
 
+        /// <summary>
+        /// Update the network's weights and biases by applying gradient descent using backpropagation to a single mini batch.
+        /// </summary>
+        /// <param name="miniBatch">the training data</param>
+        /// <param name="eta">the learning rate</param>
+        private void UpdateMiniBatch(Tuple<double[], double[]>[] miniBatch, double eta)
+        {
+            var trainingBiases = this.biases.Select(b => new double[b.Length]);
+            var trainingWeights = this.weights.Select(w => Matrix.Create(w.Length, w[0].Length));
+            foreach (var trainingData in miniBatch)
+            {
+                Tuple<IEnumerable<double[]>, IEnumerable<double[][]>> delta = Backpropagation(trainingData);
+                trainingBiases = trainingBiases.Zip(delta.Item1, Matrix.Add);
+                trainingWeights = trainingWeights.Zip(delta.Item2, Matrix.Add);
+            }
+            this.biases = this.biases.Zip(trainingBiases, (b, nb) => Matrix.Add(b, Matrix.Multiply(nb, -eta / miniBatch.Length))).ToArray();
+            this.weights = this.weights.Zip(trainingWeights, (w, nw) => Matrix.Add(w, Matrix.Multiply(nw, -eta / miniBatch.Length))).ToArray();
+        }
+
+        /// <summary>
+        /// Return a tuple representing the gradient for the cost function C_x. 
+        /// </summary>
+        private Tuple<IEnumerable<double[]>, IEnumerable<double[][]>> Backpropagation(Tuple<double[], double[]> trainingData)
+        {
+            var trainingBiases = this.biases.Select(b => new double[b.Length]);
+            var trainingWeights = this.weights.Select(w => Matrix.Create(w.Length, w[0].Length));
+
+            // feed forward
+            var activation = trainingData.Item1;
+            var activations = new List<double[]> { trainingData.Item1 }; //list to store all the activations, layer by layer
+            var zs = new List<double[]>(); //list to store all the z vectors, layer by layer
+            foreach (var item in this.biases.Zip(this.weights, (bias, weight) => new { bias, weight }))
+            {
+                var z = Matrix.Add(Matrix.DotProduct(item.weight, activation), item.bias);
+                zs.Add(z);
+                activation = z.Select(_z => Equations.Sigmoid(_z)).ToArray();
+                activations.Add(activation);
+            }
+
+            //backward pass
+            throw new NotImplementedException();
+        }
+
+        private int Evaluate(IList<Tuple<double[], double[]>> testData)
+        {
+            return 0; //TODO
         }
 
         /// <summary>

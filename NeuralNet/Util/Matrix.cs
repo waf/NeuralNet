@@ -24,6 +24,39 @@ namespace NeuralNet.Util
             return result;
         }
 
+        public static double[][] Transpose(double[][] m)
+        {
+            int length = m[0].Length;
+            double[][] result = new double[length][];
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = new double[length];
+                for (int j = 0; j < m.Length; j++)
+                    result[i][j] = m[j][i];
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Assumes `b` is transposed
+        /// </summary>
+        public static double[][] DotProductTransposed(double[] a, double[] b)
+        {
+            int aRows = a.Length;
+            int bRows = b.Length;
+
+            double[][] result = new double[aRows][];
+            for (int i = 0; i < aRows; ++i)
+            {
+                result[i] = new double[bRows];
+                for (int k = 0; k < bRows; ++k)
+                    result[i][k] += a[i] * b[k];
+
+            }
+
+            return result;
+        }
+
         public static double[] Add(double[] a, double[] b)
         {
             int aRows = a.Length;
@@ -33,6 +66,19 @@ namespace NeuralNet.Util
             for (int i = 0; i < aRows; i++)
             {
                 result[i] = a[i] + b[i];
+            }
+            return result;
+        }
+
+        public static double[] Subtract(double[] a, double[] b)
+        {
+            int aRows = a.Length;
+            int bRows = b.Length;
+            Debug.Assert(aRows == bRows, "Invalid Add dimensions");
+            double[] result = new double[aRows];
+            for (int i = 0; i < aRows; i++)
+            {
+                result[i] = a[i] - b[i];
             }
             return result;
         }
@@ -57,6 +103,18 @@ namespace NeuralNet.Util
             for (int i = 0; i < aRows; i++)
             {
                 result[i] = a[i] * b;
+            }
+            return result;
+        }
+
+
+        public static double[] Multiply(double[] a, double[] b)
+        {
+            int aRows = a.Length;
+            double[] result = new double[aRows];
+            for (int i = 0; i < aRows; i++)
+            {
+                result[i] = a[i] * b[i];
             }
             return result;
         }

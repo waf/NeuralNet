@@ -101,7 +101,7 @@ namespace NeuralNet
             var trainingWeights = this.weights.Select(w => Matrix.Create(w.Length, w[0].Length));
             foreach (var trainingData in miniBatch)
             {
-                Tuple<IEnumerable<double[]>, IEnumerable<double[][]>> delta = Backpropagation(trainingData);
+                Tuple<List<double[]>, List<double[][]>> delta = Backpropagation(trainingData);
                 trainingBiases = trainingBiases.Zip(delta.Item1, Matrix.Add);
                 trainingWeights = trainingWeights.Zip(delta.Item2, Matrix.Add);
             }
@@ -112,10 +112,10 @@ namespace NeuralNet
         /// <summary>
         /// Return a tuple representing the gradient for the cost function C_x. 
         /// </summary>
-        private Tuple<IEnumerable<double[]>, IEnumerable<double[][]>> Backpropagation(Tuple<double[], double[]> trainingData)
+        private Tuple<List<double[]>, List<double[][]>> Backpropagation(Tuple<double[], double[]> trainingData)
         {
-            var trainingBiases = this.biases.Select(b => new double[b.Length]);
-            var trainingWeights = this.weights.Select(w => Matrix.Create(w.Length, w[0].Length));
+            var trainingBiases = this.biases.Select(b => new double[b.Length]).ToArray();
+            var trainingWeights = this.weights.Select(w => Matrix.Create(w.Length, w[0].Length)).ToArray();
 
             // feed forward
             var activation = trainingData.Item1;
@@ -130,12 +130,39 @@ namespace NeuralNet
             }
 
             //backward pass
-            throw new NotImplementedException();
+            var y = trainingData.Item2;
+            var delta = Matrix.Multiply(
+                this.CostDerivative(activations.Last(), y), 
+                zs.Last().Select(z => Equations.SigmoidPrime(z)).ToArray());
+            trainingBiases[trainingBiases.Length - 1] = delta;
+            trainingWeights[trainingWeights.Length - 1] = Matrix.DotProductTransposed(delta, activations[activations.Count() - 2]);
+
+            for(int l = 2; l < this.numLayers; l++)
+            {
+                var z = zs.Last();
+                var sp = z.Select(_z => Equations.SigmoidPrime(_z)).ToArray();
+                delta = Matrix.Multiply(Matrix.DotProduct(Matrix.Transpose(this.weights[-l + 1]), delta), sp);
+                trainingBiases[trainingBiases.Length - 1] = delta;
+                trainingWeights[trainingWeights.Length - 1] = Matrix.DotProductTransposed(delta, activations[-l - 1]);
+            }
+            return Tuple.Create(trainingBiases.ToList(), trainingWeights.ToList());
+        }
+
+        private double[] CostDerivative(double[] outputActivations, double[] y)
+        {
+            return Matrix.Subtract(outputActivations, y);
         }
 
         private int Evaluate(IList<Tuple<double[], double[]>> testData)
         {
-            return 0; //TODO
+            Func<double[], int> GetHighestIndex = 
+                arr => arr
+                        .Select((value, index) => new { Value = value, Index = index })
+                        .Aggregate((a, b) => (a.Value > b.Value) ? a : b)
+                        .Index;
+
+            return testData
+                .Count(kvp => GetHighestIndex(this.FeedForward(kvp.Item1)) == GetHighestIndex(kvp.Item2));
         }
 
         /// <summary>
